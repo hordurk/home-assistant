@@ -28,11 +28,21 @@ class TestShellCommand(unittest.TestCase):
             path = os.path.join(tempdirname, 'called.txt')
             assert _setup_component(self.hass, shell_command.DOMAIN, {
                 shell_command.DOMAIN: {
-                    'test_service': "date > {}".format(path)
+                    'test_service': "date > {}".format(path),
+                    'test_service_template':
+                        "date > {{ states.sensor.test_state.state }}"
                 }
             })
 
             self.hass.services.call('shell_command', 'test_service',
+                                    blocking=True)
+
+            self.assertTrue(os.path.isfile(path))
+            os.remove(path)
+            self.assertFalse(os.path.isfile(path))
+
+            self.hass.states.set('sensor.test_state', path)
+            self.hass.services.call('shell_command', 'test_service_template',
                                     blocking=True)
 
             self.assertTrue(os.path.isfile(path))
